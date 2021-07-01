@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	jsonpatch "github.com/evanphx/json-patch"
-	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -28,12 +27,14 @@ type Router struct {
 }
 
 func (r *Router) sendError(rw http.ResponseWriter, review *v1.AdmissionReview, err error) {
-	logrus.Debug(err)
 	if review == nil || review.Request == nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	review.Response.Result = &errors.NewInternalError(err).ErrStatus
+	review.Response = &v1.AdmissionResponse{
+		UID:    review.Request.UID,
+		Result: &errors.NewInternalError(err).ErrStatus,
+	}
 	writeResponse(rw, review)
 }
 
